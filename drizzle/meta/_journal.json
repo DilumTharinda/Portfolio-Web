@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1786104017868,
+      "tag": "0000_public_mauler",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1786104091861,
+      "tag": "0001_smooth_talon",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786106175386,
+      "tag": "0002_robust_scream",
+      "breakpoints": true
+    }
+  ]
+}
