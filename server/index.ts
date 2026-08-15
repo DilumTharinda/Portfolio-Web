@@ -19,7 +19,7 @@ const __dirname = path.dirname(__filename);
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, 'public/uploads');
+    const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, 'public/uploads');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -55,12 +55,15 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
   
-  // Enable CORS for client running on port 5173
+  // Enable CORS for client
   app.use(cors({
-    origin: "http://localhost:5173",
+    origin: process.env.CORS_ORIGIN?.split(",") ?? "http://localhost:5173",
     credentials: true,
   }));
-  
+
+  // Health check for Nginx/monitoring
+  app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -144,8 +147,8 @@ async function startServer() {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
-  server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+  server.listen(port, "0.0.0.0", () => {
+    console.log(`Server running on http://0.0.0.0:${port}/`);
   });
 }
 

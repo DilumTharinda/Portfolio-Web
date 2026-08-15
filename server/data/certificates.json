@@ -1,0 +1,54 @@
+[
+  {
+    "title": "AWS Certified Solutions Architect – Professional",
+    "issuer": "Amazon Web Services",
+    "credentialId": "AWS-PSA-98234102",
+    "issueDate": "Jan 2025",
+    "expiryDate": "Jan 2028",
+    "verificationUrl": "https://aws.amazon.com/verification",
+    "category": "DevOps",
+    "orderIndex": 1,
+    "id": 1,
+    "createdAt": "2026-08-15T16:19:47.520Z",
+    "updatedAt": "2026-08-15T16:19:47.520Z"
+  },
+  {
+    "title": "Certified Kubernetes Administrator (CKA)",
+    "issuer": "Cloud Native Computing Foundation (CNCF)",
+    "credentialId": "LF-CKA-772910",
+    "issueDate": "Nov 2024",
+    "expiryDate": "Nov 2027",
+    "verificationUrl": "https://www.cncf.io/certification/cka/",
+    "category": "DevOps",
+    "orderIndex": 2,
+    "id": 2,
+    "createdAt": "2026-08-15T16:19:47.520Z",
+    "updatedAt": "2026-08-15T16:19:47.520Z"
+  },
+  {
+    "title": "AWS Certified IoT Specialty",
+    "issuer": "Amazon Web Services",
+    "credentialId": "AWS-IOT-449102",
+    "issueDate": "Aug 2024",
+    "expiryDate": "Aug 2027",
+    "verificationUrl": "https://aws.amazon.com/verification",
+    "category": "IoT",
+    "orderIndex": 3,
+    "id": 3,
+    "createdAt": "2026-08-15T16:19:47.520Z",
+    "updatedAt": "2026-08-15T16:19:47.520Z"
+  },
+  {
+    "title": "Professional Cloud DevOps Engineer",
+    "issuer": "Google Cloud",
+    "credentialId": "GCP-PDE-883921",
+    "issueDate": "May 2024",
+    "expiryDate": "May 2027",
+    "verificationUrl": "https://cloud.google.com/certification",
+    "category": "DevOps",
+    "orderIndex": 4,
+    "id": 4,
+    "createdAt": "2026-08-15T16:19:47.520Z",
+    "updatedAt": "2026-08-15T16:19:47.520Z"
+  }
+]

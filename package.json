@@ -7,7 +7,9 @@
     "dev:client": "npm run dev --prefix client",
     "dev:server": "npm run dev --prefix server",
     "build:client": "npm run build --prefix client",
-    "build:server": "npm run build --prefix server"
+    "build:server": "npm run build --prefix server",
+    "build": "npm run build:client && npm run build:server",
+    "db:push": "npm run db:push --prefix server"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",
