@@ -70,7 +70,7 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
 
-  app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+  app.use('/uploads', express.static(process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads')));
 
   app.post('/api/upload', upload.single('image'), (req, res) => {
     if (!req.file) {
