@@ -14,16 +14,18 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { 
-  Terminal, Server, Cpu, Cloud, Database, Shield, Layers, 
-  ExternalLink, Github, ArrowRight, Award, Calendar, Clock, 
+import {
+  Terminal, Server, Cpu, Cloud, Database, Shield, Layers,
+  ExternalLink, Github, ArrowRight, Award, Calendar, Clock,
   CheckCircle2, Mail, Send, Sparkles, FileText, Code2, Network,
   Radio, CpuIcon, Webhook
 } from "lucide-react";
+import { Profile } from "@/types/profile";
 
 export default function Home() {
   // Data queries
-  const { data: profile } = trpc.portfolio.getProfile.useQuery();
+  const { data: profile, isLoading: profileLoading } = trpc.portfolio.getProfile.useQuery();
+  const typedProfile = profile as Profile | undefined;
   const { data: skills = [] } = trpc.portfolio.getSkills.useQuery();
   const { data: projects = [] } = trpc.portfolio.getProjects.useQuery();
   const { data: certificates = [] } = trpc.portfolio.getCertificates.useQuery();
@@ -67,7 +69,19 @@ export default function Home() {
     },
   });
 
-  const filteredProjects = projectCategoryFilter === "All" 
+  // Loading state handler
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <p className="text-muted-foreground font-mono text-sm animate-pulse">Loading Portfolio Assets...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const filteredProjects = projectCategoryFilter === "All"
     ? projects 
     : projects.filter((p: any) => p.category === projectCategoryFilter);
 
@@ -152,7 +166,7 @@ export default function Home() {
             <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Professional Profile</span>
             <h2 className="text-3xl md:text-4xl font-serif font-bold">Engineering at Scale</h2>
             <p className="text-muted-foreground">
-              {profile?.bio || "Bridging low-level hardware telemetry with cloud-native reliability and polished user experiences."}
+              {typedProfile?.bio || "Bridging low-level hardware telemetry with cloud-native reliability and polished user experiences."}
             </p>
           </div>
 
@@ -487,12 +501,12 @@ export default function Home() {
               <div className="space-y-4 pt-4 font-mono text-sm">
                 <div className="flex items-center gap-3 text-muted-foreground">
                   <Mail className="w-5 h-5 text-primary" />
-                  <span>{profile?.email || "alex.chen@executive-tech.io"}</span>
+                  <span>{typedProfile?.email || "alex.chen@executive-tech.io"}</span>
                 </div>
-                {profile?.githubUrl && (
+                {typedProfile?.githubUrl && (
                   <div className="flex items-center gap-3 text-muted-foreground">
                     <Github className="w-5 h-5 text-primary" />
-                    <a href={profile.githubUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">GitHub Profile</a>
+                    <a href={typedProfile.githubUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">GitHub Profile</a>
                   </div>
                 )}
               </div>
@@ -566,7 +580,7 @@ export default function Home() {
       <footer className="border-t border-border py-12 bg-card/50">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-muted-foreground font-mono">
           <div>
-            © {new Date().getFullYear()} {profile?.name || "Alex Chen"}. All rights reserved. Built with Executive Tech Architecture.
+            © {new Date().getFullYear()} {typedProfile?.name || "Alex Chen"}. All rights reserved. Built with Executive Tech Architecture.
           </div>
           <div className="flex items-center gap-6">
             <a href="#about" className="hover:text-foreground">About</a>

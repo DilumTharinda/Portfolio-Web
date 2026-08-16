@@ -76,7 +76,8 @@ async function startServer() {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
-    const imageUrl = `/uploads/${req.file.filename}`;
+    const baseUrl = process.env.API_BASE_URL || "";
+    const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
     res.json({ url: imageUrl });
   });
 

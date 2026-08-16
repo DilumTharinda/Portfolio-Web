@@ -3,24 +3,13 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { Moon, Sun, Menu, X, Github, Linkedin, Youtube } from "lucide-react";
-
-interface Profile {
-  name: string;
-  title: string;
-  bio: string;
-  avatarUrl: string;
-  githubUrl?: string | null;
-  linkedinUrl?: string | null;
-  twitterUrl?: string | null;
-  email?: string | null;
-  activeTheme: string;
-}
+import { Profile } from "@/types/profile";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
-  const { data: profile } = trpc.portfolio.getProfile.useQuery();
+  const { data: profile, isLoading } = trpc.portfolio.getProfile.useQuery();
   const typedProfile = profile as Profile | undefined;
 
   useEffect(() => {
@@ -40,7 +29,7 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
         {/* Brand / Profile Avatar & Name */}
         <a href="/" className="flex items-center gap-3 group">
-          {typedProfile?.avatarUrl ? (
+          {!isLoading && (typedProfile?.avatarUrl ? (
             <img
               src={typedProfile.avatarUrl}
               alt={typedProfile.name || "Alex Chen"}
@@ -48,12 +37,16 @@ export function Navbar() {
             />
           ) : (
             <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-mono font-bold text-sm shadow-sm group-hover:scale-105 transition-transform">
-              AC
+              {isLoading ? "" : "AC"}
             </div>
-          )}
-          <div>
-            <span className="font-serif font-bold text-lg tracking-tight block leading-none">{typedProfile?.name || "Alex Chen"}</span>
-            <span className="text-xs text-muted-foreground font-mono tracking-wider mt-0.5 block truncate max-w-[200px] sm:max-w-xs">{typedProfile?.title || "Software Engineer"}</span>
+          ))}
+          <div className="flex flex-col">
+            <span className={`font-serif font-bold text-lg tracking-tight block leading-none ${isLoading ? "opacity-0" : "opacity-100 transition-opacity"}`}>
+              {typedProfile?.name || "Alex Chen"}
+            </span>
+            <span className={`text-xs text-muted-foreground font-mono tracking-wider mt-0.5 block truncate max-w-[200px] sm:max-w-xs ${isLoading ? "opacity-0" : "opacity-100 transition-opacity"}`}>
+              {typedProfile?.title || "Software Engineer"}
+            </span>
           </div>
         </a>
 
