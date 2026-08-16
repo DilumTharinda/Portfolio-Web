@@ -19,7 +19,7 @@ const __dirname = path.dirname(__filename);
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, 'public/uploads');
+    const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -70,7 +70,7 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
 
-  app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+  app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
   app.post('/api/upload', upload.single('image'), (req, res) => {
     if (!req.file) {
