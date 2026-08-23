@@ -168,6 +168,25 @@ export default function Home() {
             <p className="text-muted-foreground">
               {typedProfile?.bio || "Bridging low-level hardware telemetry with cloud-native reliability and polished user experiences."}
             </p>
+            {typedProfile?.cvUrl && (
+              <div className="flex justify-center pt-8">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button
+                    variant="default"
+                    className="gap-2 font-mono text-xs px-6 py-5 rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300 group"
+                    asChild
+                  >
+                    <a href={typedProfile.cvUrl} target="_blank" rel="noopener noreferrer">
+                      <FileText className="w-4 h-4 transition-transform group-hover:-translate-y-0.5" />
+                      Download Professional CV <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-all translate-x-[-4px] group-hover:translate-x-0" />
+                    </a>
+                  </Button>
+                </motion.div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

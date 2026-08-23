@@ -33,6 +33,7 @@ export async function upsertProfileSettings(input: {
   title: string;
   bio: string;
   avatarUrl: string;
+  cvUrl?: string | null;
   githubUrl?: string | null;
   linkedinUrl?: string | null;
   twitterUrl?: string | null;
