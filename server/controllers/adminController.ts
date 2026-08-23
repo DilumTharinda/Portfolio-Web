@@ -282,6 +282,7 @@ export const adminRouter = router({
       title: z.string().min(2),
       bio: z.string().min(5),
       avatarUrl: z.string(),
+      cvUrl: z.string().optional().nullable(),
       githubUrl: z.string().optional().nullable(),
       linkedinUrl: z.string().optional().nullable(),
       twitterUrl: z.string().optional().nullable(),

@@ -32,6 +32,21 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
+const cvStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = (process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads')) + '/CV';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const uploadCV = multer({ storage: cvStorage });
+
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
     const server = net.createServer();
@@ -79,6 +94,15 @@ async function startServer() {
     const baseUrl = process.env.API_BASE_URL || "";
     const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
     res.json({ url: imageUrl });
+  });
+
+  app.post('/api/upload-cv', uploadCV.single('cv'), (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No CV file uploaded' });
+    }
+    const baseUrl = process.env.API_BASE_URL || "";
+    const cvUrl = `${baseUrl}/uploads/CV/${req.file.filename}`;
+    res.json({ url: cvUrl });
   });
 
   // --- Local Dev Admin Login (bypasses Manus OAuth) ---

@@ -12,12 +12,12 @@ import { toast } from "sonner";
 import { Shield, Plus, Trash2, ArrowLeft, FileText, FolderGit2, Award, Mail, User, Settings, Code2, Upload } from "lucide-react";
 import { Link } from "wouter";
 
-const ImageUploadInput = ({ 
-  value, 
-  onChange, 
-  placeholder 
-}: { 
-  value: string; 
+const ImageUploadInput = ({
+  value,
+  onChange,
+  placeholder
+}: {
+  value: string;
   onChange: (url: string) => void;
   placeholder?: string;
 }) => {
@@ -50,10 +50,10 @@ const ImageUploadInput = ({
 
   return (
     <div className="flex gap-2">
-      <Input 
-        value={value} 
-        onChange={e => onChange(e.target.value)} 
-        placeholder={placeholder} 
+      <Input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
         className="flex-1"
       />
       <div className="relative">
@@ -61,13 +61,79 @@ const ImageUploadInput = ({
           <Upload className="w-4 h-4" />
           {isUploading ? "Uploading..." : "Upload File"}
         </Button>
-        <input 
-          type="file" 
-          accept="image/*" 
+        <input
+          type="file"
+          accept="image/*"
           onChange={handleFileChange}
           className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"
           disabled={isUploading}
           title="Upload image file"
+        />
+      </div>
+    </div>
+  );
+};
+
+const CVUploadInput = ({
+  value,
+  onChange,
+  placeholder
+}: {
+  value: string;
+  onChange: (url: string) => void;
+  placeholder?: string;
+}) => {
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      toast.error("Please upload a PDF file");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("cv", file);
+
+    setIsUploading(true);
+    try {
+      const res = await fetch("/api/upload-cv", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      onChange(data.url);
+      toast.success("CV uploaded successfully");
+    } catch (error: any) {
+      toast.error(`Error uploading CV: ${error.message}`);
+    } finally {
+      setIsUploading(false);
+      e.target.value = ""; // Reset file input
+    }
+  };
+
+  return (
+    <div className="flex gap-2">
+      <Input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="flex-1"
+      />
+      <div className="relative">
+        <Button type="button" variant="outline" disabled={isUploading} className="gap-2 shrink-0">
+          <Upload className="w-4 h-4" />
+          {isUploading ? "Uploading..." : "Upload CV"}
+        </Button>
+        <input
+          type="file"
+          accept=".pdf"
+          onChange={handleFileChange}
+          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"
+          disabled={isUploading}
+          title="Upload CV PDF file"
         />
       </div>
     </div>
@@ -94,6 +160,7 @@ export default function Admin() {
   const [profileTitle, setProfileTitle] = useState("");
   const [profileBio, setProfileBio] = useState("");
   const [profileAvatarUrl, setProfileAvatarUrl] = useState("");
+  const [profileCvUrl, setProfileCvUrl] = useState("");
   const [profileGithubUrl, setProfileGithubUrl] = useState("");
   const [profileLinkedinUrl, setProfileLinkedinUrl] = useState("");
   const [profileTwitterUrl, setProfileTwitterUrl] = useState("");
@@ -106,6 +173,7 @@ export default function Admin() {
       setProfileTitle(profile.title || "");
       setProfileBio(profile.bio || "");
       setProfileAvatarUrl(profile.avatarUrl || "");
+      setProfileCvUrl((profile as any).cvUrl || "");
       setProfileGithubUrl(profile.githubUrl || "");
       setProfileLinkedinUrl(profile.linkedinUrl || "");
       setProfileTwitterUrl(profile.twitterUrl || "");
@@ -438,6 +506,7 @@ export default function Admin() {
                     title: profileTitle,
                     bio: profileBio,
                     avatarUrl: profileAvatarUrl,
+                    cvUrl: profileCvUrl,
                     githubUrl: profileGithubUrl,
                     linkedinUrl: profileLinkedinUrl,
                     twitterUrl: profileTwitterUrl,
@@ -475,6 +544,11 @@ export default function Admin() {
                     <Label>Profile Picture URL (Top-Left Avatar)</Label>
                     <ImageUploadInput value={profileAvatarUrl} onChange={setProfileAvatarUrl} placeholder="https://images.unsplash.com/..." />
                     <p className="text-xs text-muted-foreground">Provide an image URL for your profile picture. It will be displayed in the navbar and hero section.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Professional CV (PDF)</Label>
+                    <CVUploadInput value={profileCvUrl} onChange={setProfileCvUrl} placeholder="https://..." />
+                    <p className="text-xs text-muted-foreground">Upload your professional CV in PDF format. It will be available for download on the homepage.</p>
                   </div>
 
                   <div className="space-y-2">

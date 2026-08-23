@@ -128,6 +128,7 @@ export const profileSettings = mysqlTable("profile_settings", {
   linkedinUrl: varchar("linkedinUrl", { length: 255 }),
   twitterUrl: varchar("twitterUrl", { length: 255 }),
   email: varchar("email", { length: 320 }),
+  cvUrl: text("cvUrl"),
   activeTheme: mysqlEnum("activeTheme", ["devops", "iot", "fullstack"]).default("devops").notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
