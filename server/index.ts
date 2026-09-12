@@ -139,7 +139,7 @@ import("./models/seed").then(({ seedInitialData }) => seedInitialData()).catch(e
 
 // Only listen locally — Vercel provides its own HTTP layer
 if (process.env.VERCEL !== "1") {
-  const port = parseInt(process.env.PORT || "3000");
+  const port = parseInt(process.env.PORT || "3001");
   app.listen(port, () => console.log(`Server running on http://localhost:${port}/`));
 }
 
