@@ -1,7 +1,5 @@
 import "dotenv/config";
 import express from "express";
-import { createServer } from "http";
-import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./services/oauth";
 import { registerStorageProxy } from "./services/storageProxy";
@@ -47,134 +45,102 @@ const cvStorage = multer.diskStorage({
 });
 const uploadCV = multer({ storage: cvStorage });
 
-function isPortAvailable(port: number): Promise<boolean> {
-  return new Promise(resolve => {
-    const server = net.createServer();
-    server.listen(port, () => {
-      server.close(() => resolve(true));
-    });
-    server.on("error", () => resolve(false));
+const app = express();
+
+// Enable CORS for client
+app.use(cors({
+  origin: process.env.CORS_ORIGIN?.split(",") ?? "http://localhost:5173",
+  credentials: true,
+}));
+
+// Health check for Nginx/monitoring
+app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+// Configure body parser with larger size limit for file uploads
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+registerStorageProxy(app);
+registerOAuthRoutes(app);
+
+app.use('/uploads', express.static(process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads')));
+
+app.post('/api/upload', upload.single('image'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+  const baseUrl = process.env.API_BASE_URL || "";
+  const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
+  res.json({ url: imageUrl });
+});
+
+app.post('/api/upload-cv', uploadCV.single('cv'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No CV file uploaded' });
+  }
+  const baseUrl = process.env.API_BASE_URL || "";
+  const cvUrl = `${baseUrl}/uploads/CV/${req.file.filename}`;
+  res.json({ url: cvUrl });
+});
+
+// --- Local Dev Admin Login (bypasses Manus OAuth) ---
+if (process.env.NODE_ENV === "development") {
+  app.get("/api/dev-login", async (req, res) => {
+    try {
+      const { upsertUser } = await import("./models/User");
+      const devOpenId = "dev-admin-local";
+
+      // Ensure the dev admin user exists in the database
+      await upsertUser({
+        openId: devOpenId,
+        name: "Local Admin",
+        email: "admin@localhost",
+        loginMethod: "dev",
+        role: "admin",
+        lastSignedIn: new Date(),
+      });
+
+      // Create a session token
+      const sessionToken = await sdk.createSessionToken(devOpenId, {
+        name: "Local Admin",
+        expiresInMs: 1000 * 60 * 60 * 24 * 365, // 1 year
+      });
+
+      // Set the session cookie
+      res.cookie("app_session_id", sessionToken, {
+        httpOnly: true,
+        path: "/",
+        sameSite: "lax",
+        secure: false,
+        maxAge: 1000 * 60 * 60 * 24 * 365,
+      });
+
+      console.log("[Dev] Admin session created for dev-admin-local");
+      res.redirect(302, "/admin");
+    } catch (error) {
+      console.error("[Dev] Dev login failed:", error);
+      res.status(500).json({ error: "Dev login failed", details: String(error) });
+    }
   });
+  console.log("[Dev] Dev login available at /api/dev-login");
 }
 
-async function findAvailablePort(startPort: number = 3000): Promise<number> {
-  for (let port = startPort; port < startPort + 20; port++) {
-    if (await isPortAvailable(port)) {
-      return port;
-    }
-  }
-  throw new Error(`No available port found starting from ${startPort}`);
+// tRPC API
+app.use(
+  "/api/trpc",
+  createExpressMiddleware({
+    router: appRouter,
+    createContext,
+  })
+);
+
+// Seed initial portfolio data on startup
+import("./models/seed").then(({ seedInitialData }) => seedInitialData()).catch(err => console.error("[Database] Seed failed:", err));
+
+// Only listen locally — Vercel provides its own HTTP layer
+if (process.env.VERCEL !== "1") {
+  const port = parseInt(process.env.PORT || "3000");
+  app.listen(port, () => console.log(`Server running on http://localhost:${port}/`));
 }
 
-async function startServer() {
-  const app = express();
-  const server = createServer(app);
-  
-  // Enable CORS for client
-  app.use(cors({
-    origin: process.env.CORS_ORIGIN?.split(",") ?? "http://localhost:5173",
-    credentials: true,
-  }));
-
-  // Health check for Nginx/monitoring
-  app.get("/api/health", (_req, res) => res.json({ ok: true }));
-
-  // Configure body parser with larger size limit for file uploads
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
-  registerStorageProxy(app);
-  registerOAuthRoutes(app);
-
-  app.use('/uploads', express.static(process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads')));
-
-  app.post('/api/upload', upload.single('image'), (req, res) => {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-    const baseUrl = process.env.API_BASE_URL || "";
-    const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
-    res.json({ url: imageUrl });
-  });
-
-  app.post('/api/upload-cv', uploadCV.single('cv'), (req, res) => {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No CV file uploaded' });
-    }
-    const baseUrl = process.env.API_BASE_URL || "";
-    const cvUrl = `${baseUrl}/uploads/CV/${req.file.filename}`;
-    res.json({ url: cvUrl });
-  });
-
-  // --- Local Dev Admin Login (bypasses Manus OAuth) ---
-  if (process.env.NODE_ENV === "development") {
-    app.get("/api/dev-login", async (req, res) => {
-      try {
-        const { upsertUser } = await import("./models/User");
-        const devOpenId = "dev-admin-local";
-
-        // Ensure the dev admin user exists in the database
-        await upsertUser({
-          openId: devOpenId,
-          name: "Local Admin",
-          email: "admin@localhost",
-          loginMethod: "dev",
-          role: "admin",
-          lastSignedIn: new Date(),
-        });
-
-        // Create a session token
-        const sessionToken = await sdk.createSessionToken(devOpenId, {
-          name: "Local Admin",
-          expiresInMs: 1000 * 60 * 60 * 24 * 365, // 1 year
-        });
-
-        // Set the session cookie
-        res.cookie("app_session_id", sessionToken, {
-          httpOnly: true,
-          path: "/",
-          sameSite: "lax",
-          secure: false,
-          maxAge: 1000 * 60 * 60 * 24 * 365,
-        });
-
-        console.log("[Dev] Admin session created for dev-admin-local");
-        res.redirect(302, "/admin");
-      } catch (error) {
-        console.error("[Dev] Dev login failed:", error);
-        res.status(500).json({ error: "Dev login failed", details: String(error) });
-      }
-    });
-    console.log("[Dev] Dev login available at /api/dev-login");
-  }
-
-  // tRPC API
-  app.use(
-    "/api/trpc",
-    createExpressMiddleware({
-      router: appRouter,
-      createContext,
-    })
-  );
-
-  // Seed initial portfolio data on startup
-  try {
-    const { seedInitialData } = await import("./models/seed");
-    await seedInitialData();
-    console.log("[Database] Initial data seeding checked/completed.");
-  } catch (err) {
-    console.error("[Database] Seed failed on startup:", err);
-  }
-
-  const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
-
-  if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
-  }
-
-  server.listen(port, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${port}/`);
-  });
-}
-
-startServer().catch(console.error);
+export default app;
