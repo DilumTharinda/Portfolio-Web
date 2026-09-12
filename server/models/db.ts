@@ -119,6 +119,16 @@ async function autoCreateTables(db: ReturnType<typeof drizzle>) {
       )
     `));
 
+    // Keep existing deployments compatible when new profile fields are added.
+    try {
+      await db.execute(sql.raw(`ALTER TABLE profile_settings ADD COLUMN cvUrl TEXT NULL`));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.toLowerCase().includes("duplicate column")) {
+        console.warn("[Database] cvUrl migration skipped:", message);
+      }
+    }
+
     await db.execute(sql.raw(`
       CREATE TABLE IF NOT EXISTS skills (
         id INT AUTO_INCREMENT PRIMARY KEY,
