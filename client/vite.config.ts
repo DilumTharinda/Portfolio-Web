@@ -27,9 +27,11 @@ export default defineConfig({
   },
   server: {
     host: true,
+    port: 3000,
+    strictPort: true,
     proxy: {
-      "/api": "http://localhost:3000",
-      "/uploads": "http://localhost:3000",
+      "/api": "http://localhost:3001",
+      "/uploads": "http://localhost:3001",
     },
     allowedHosts: [
       ".manuspre.computer",
