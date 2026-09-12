@@ -119,6 +119,12 @@ async function autoCreateTables(db: ReturnType<typeof drizzle>) {
       )
     `));
 
+    // Keep existing deployments compatible when new profile fields are added.
+    await db.execute(sql.raw(`
+      ALTER TABLE profile_settings
+      ADD COLUMN IF NOT EXISTS cvUrl TEXT NULL
+    `));
+
     await db.execute(sql.raw(`
       CREATE TABLE IF NOT EXISTS skills (
         id INT AUTO_INCREMENT PRIMARY KEY,
