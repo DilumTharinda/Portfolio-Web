@@ -29,6 +29,13 @@ export default function Home() {
     refetchOnWindowFocus: false,
   });
   const typedProfile = profile as Profile | undefined;
+  const mediaUrl = (url?: string | null) => {
+    if (!url) return undefined;
+    if (url.startsWith('/api/blob?')) return url;
+    if (url.includes('/api/blob?pathname=')) return url;
+    if (url.startsWith('https://') || url.startsWith('http://')) return url;
+    return `/api/blob?pathname=${encodeURIComponent(url)}`;
+  };
   const { data: skills = [] } = trpc.portfolio.getSkills.useQuery();
   const { data: projects = [] } = trpc.portfolio.getProjects.useQuery();
   const { data: certificates = [] } = trpc.portfolio.getCertificates.useQuery();
@@ -132,9 +139,9 @@ export default function Home() {
       <Navbar />
 
       {/* --- HERO SECTION BASED ON ACTIVE THEME --- */}
-      {activeTheme === "devops" && <DevOpsHero profile={profile} />}
-      {activeTheme === "iot" && <IoTHero profile={profile} />}
-      {activeTheme === "fullstack" && <FullStackHero profile={profile} />}
+  {activeTheme === "devops" && <DevOpsHero profile={{ ...profile, avatarUrl: mediaUrl(profile?.avatarUrl) }} />}
+  {activeTheme === "iot" && <IoTHero profile={{ ...profile, avatarUrl: mediaUrl(profile?.avatarUrl) }} />}
+  {activeTheme === "fullstack" && <FullStackHero profile={{ ...profile, avatarUrl: mediaUrl(profile?.avatarUrl) }} />}
 
       {/* --- 2. ABOUT & BIO SECTION WITH VECTOR SHAPES --- */}
       <motion.section 
@@ -159,7 +166,7 @@ export default function Home() {
             <p className="text-muted-foreground">
               {typedProfile?.bio || "Bridging low-level hardware telemetry with cloud-native reliability and polished user experiences."}
             </p>
-            {typedProfile?.cvUrl && (
+            {mediaUrl(typedProfile?.cvUrl) && (
               <div className="flex justify-center pt-8">
                 <motion.div
                   whileHover={{ scale: 1.05 }}
@@ -170,7 +177,7 @@ export default function Home() {
                     className="gap-2 font-mono text-xs px-6 py-5 rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300 group"
                     asChild
                   >
-                    <a href={typedProfile.cvUrl} target="_blank" rel="noopener noreferrer">
+                    <a href={mediaUrl(typedProfile.cvUrl)} target="_blank" rel="noopener noreferrer">
                       <FileText className="w-4 h-4 transition-transform group-hover:-translate-y-0.5" />
                       Download Professional CV <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-all translate-x-[-4px] group-hover:translate-x-0" />
                     </a>
