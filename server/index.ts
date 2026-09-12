@@ -142,7 +142,8 @@ app.get('/api/blob', async (req, res) => {
       ETag: result.blob.etag,
       'Cache-Control': 'private, no-cache',
     });
-    return result.stream.pipe(res);
+    const body = await new Response(result.stream as BodyInit).arrayBuffer();
+    return res.end(Buffer.from(body));
   } catch (error) {
     console.error('[Blob] Delivery failed:', error);
     return res.status(500).json({ error: 'Failed to serve file' });
