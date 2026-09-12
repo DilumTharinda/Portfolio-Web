@@ -156,7 +156,11 @@ export async function getDb() {
   _dbAttempted = true;
 
   if (!process.env.DATABASE_URL) {
-    console.warn("[Database] DATABASE_URL not set. Using JSON file storage fallback.");
+    const message = "DATABASE_URL is required in production; JSON file storage is not supported on Vercel.";
+    if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+      throw new Error(message);
+    }
+    console.warn(`[Database] ${message} Using JSON storage for local development.`);
     _usingJsonFallback = true;
     return null;
   }
@@ -174,7 +178,10 @@ export async function getDb() {
     const err = error as Error;
     console.error("[Database] Failed to connect to MySQL:");
     console.error("[Database] Error:", err.message);
-    console.warn("[Database] Falling back to JSON file storage.");
+    if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+      throw new Error(`Database connection failed: ${err.message}`);
+    }
+    console.warn("[Database] Falling back to JSON file storage for local development.");
     _usingJsonFallback = true;
     _db = null;
     return null;
