@@ -9,41 +9,18 @@ import { sdk } from "./services/sdk";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import fs from "fs";
 import multer from "multer";
+import { put } from "@vercel/blob";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
-const upload = multer({ storage: storage });
 
-const cvStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = (process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads')) + '/CV';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
+const uploadCV = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
-const uploadCV = multer({ storage: cvStorage });
 
 const app = express();
 
@@ -63,24 +40,47 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 registerStorageProxy(app);
 registerOAuthRoutes(app);
 
-app.use('/uploads', express.static(process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads')));
-
-app.post('/api/upload', upload.single('image'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
+async function uploadToBlob(file: Express.Multer.File, folder: string) {
+  const extension = path.extname(file.originalname).toLowerCase();
+  const safeName = `${folder}/${Date.now()}-${crypto.randomUUID()}${extension}`;
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    throw new Error("Vercel Blob is not configured. Add BLOB_READ_WRITE_TOKEN to the deployed project.");
   }
-  const baseUrl = process.env.API_BASE_URL || "";
-  const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
-  res.json({ url: imageUrl });
+  return put(safeName, file.buffer, {
+    access: "public",
+    contentType: file.mimetype,
+    addRandomSuffix: false,
+    token,
+  });
+}
+
+app.post('/api/upload', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    if (!req.file.mimetype.startsWith('image/')) {
+      return res.status(415).json({ error: 'Only image files are allowed' });
+    }
+    const blob = await uploadToBlob(req.file, 'portfolio/images');
+    return res.json({ url: blob.url });
+  } catch (error) {
+    console.error('[Upload] Image upload failed:', error);
+    return res.status(500).json({ error: error instanceof Error ? error.message : 'Image upload failed' });
+  }
 });
 
-app.post('/api/upload-cv', uploadCV.single('cv'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No CV file uploaded' });
+app.post('/api/upload-cv', uploadCV.single('cv'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No CV file uploaded' });
+    if (req.file.mimetype !== 'application/pdf') {
+      return res.status(415).json({ error: 'Only PDF files are allowed' });
+    }
+    const blob = await uploadToBlob(req.file, 'portfolio/cv');
+    return res.json({ url: blob.url });
+  } catch (error) {
+    console.error('[Upload] CV upload failed:', error);
+    return res.status(500).json({ error: error instanceof Error ? error.message : 'CV upload failed' });
   }
-  const baseUrl = process.env.API_BASE_URL || "";
-  const cvUrl = `${baseUrl}/uploads/CV/${req.file.filename}`;
-  res.json({ url: cvUrl });
 });
 
 // --- Local Dev Admin Login (bypasses Manus OAuth) ---
