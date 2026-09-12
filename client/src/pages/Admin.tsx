@@ -36,8 +36,8 @@ const ImageUploadInput = ({
         method: "POST",
         body: formData,
       });
-      if (!res.ok) throw new Error("Upload failed");
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Upload failed (${res.status})`);
       onChange(data.url);
       toast.success("Image uploaded successfully");
     } catch (error: any) {
@@ -102,8 +102,8 @@ const CVUploadInput = ({
         method: "POST",
         body: formData,
       });
-      if (!res.ok) throw new Error("Upload failed");
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Upload failed (${res.status})`);
       onChange(data.url);
       toast.success("CV uploaded successfully");
     } catch (error: any) {
