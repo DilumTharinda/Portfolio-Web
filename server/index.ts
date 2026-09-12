@@ -10,7 +10,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import multer from "multer";
-import { put } from "@vercel/blob";
+import { get, put } from "@vercel/blob";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -48,7 +48,7 @@ async function uploadToBlob(file: Express.Multer.File, folder: string) {
     throw new Error("Vercel Blob is not configured. Add BLOB_READ_WRITE_TOKEN to the deployed project.");
   }
   return put(safeName, file.buffer, {
-    access: "public",
+    access: "private",
     contentType: file.mimetype,
     addRandomSuffix: false,
     token,
@@ -62,7 +62,7 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
       return res.status(415).json({ error: 'Only image files are allowed' });
     }
     const blob = await uploadToBlob(req.file, 'portfolio/images');
-    return res.json({ url: blob.url });
+    return res.json({ url: `/api/blob?pathname=${encodeURIComponent(blob.pathname)}` });
   } catch (error) {
     console.error('[Upload] Image upload failed:', error);
     return res.status(500).json({ error: error instanceof Error ? error.message : 'Image upload failed' });
@@ -76,7 +76,7 @@ app.post('/api/upload-cv', uploadCV.single('cv'), async (req, res) => {
       return res.status(415).json({ error: 'Only PDF files are allowed' });
     }
     const blob = await uploadToBlob(req.file, 'portfolio/cv');
-    return res.json({ url: blob.url });
+    return res.json({ url: `/api/blob?pathname=${encodeURIComponent(blob.pathname)}` });
   } catch (error) {
     console.error('[Upload] CV upload failed:', error);
     return res.status(500).json({ error: error instanceof Error ? error.message : 'CV upload failed' });
@@ -124,6 +124,30 @@ if (process.env.NODE_ENV === "development") {
   });
   console.log("[Dev] Dev login available at /api/dev-login");
 }
+
+app.get('/api/blob', async (req, res) => {
+  const pathname = typeof req.query.pathname === 'string' ? req.query.pathname : '';
+  if (!pathname) return res.status(400).json({ error: 'Missing pathname' });
+
+  try {
+    const result = await get(pathname, {
+      access: 'private',
+      ifNoneMatch: typeof req.headers['if-none-match'] === 'string' ? req.headers['if-none-match'] : undefined,
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+    });
+    if (!result) return res.status(404).send('Not found');
+    if (result.statusCode === 304) return res.status(304).set('ETag', result.blob.etag).end();
+    res.set({
+      'Content-Type': result.blob.contentType,
+      ETag: result.blob.etag,
+      'Cache-Control': 'private, no-cache',
+    });
+    return result.stream.pipe(res);
+  } catch (error) {
+    console.error('[Blob] Delivery failed:', error);
+    return res.status(500).json({ error: 'Failed to serve file' });
+  }
+});
 
 // tRPC API
 app.use(
