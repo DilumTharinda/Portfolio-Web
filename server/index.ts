@@ -38,7 +38,8 @@ app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.get("/api/cron/db-keepalive", async (req, res) => {
   const expectedSecret = process.env.CRON_SECRET || process.env.JWT_SECRET;
   const authorization = req.headers.authorization;
-  if (!expectedSecret || authorization !== `Bearer ${expectedSecret}`) {
+  const isVercelCron = req.headers["user-agent"] === "vercel-cron/1.0";
+  if (!isVercelCron && (!expectedSecret || authorization !== `Bearer ${expectedSecret}`)) {
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 
