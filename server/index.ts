@@ -11,6 +11,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import multer from "multer";
 import { get, put } from "@vercel/blob";
+import { getDb } from "./models/db";
+import { sql } from "drizzle-orm";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -32,6 +34,25 @@ app.use(cors({
 
 // Health check for Nginx/monitoring
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+app.get("/api/cron/db-keepalive", async (req, res) => {
+  const expectedSecret = process.env.CRON_SECRET || process.env.JWT_SECRET;
+  const authorization = req.headers.authorization;
+  const isVercelCron = req.headers["user-agent"] === "vercel-cron/1.0";
+  if (!isVercelCron && (!expectedSecret || authorization !== `Bearer ${expectedSecret}`)) {
+    return res.status(401).json({ ok: false, error: "Unauthorized" });
+  }
+
+  try {
+    const db = await getDb();
+    if (!db) return res.status(503).json({ ok: false, error: "Database unavailable" });
+    await db.execute(sql`SELECT 1`);
+    return res.json({ ok: true, database: "connected", checkedAt: new Date().toISOString() });
+  } catch (error) {
+    console.error("[Database] Keepalive failed:", error);
+    return res.status(503).json({ ok: false, error: "Database unavailable" });
+  }
+});
 
 // Configure body parser with larger size limit for file uploads
 app.use(express.json({ limit: "50mb" }));

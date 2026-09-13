@@ -1,6 +1,9 @@
 {
   "buildCommand": "npm run build:server && npm run build:client",
   "outputDirectory": "client/dist",
+  "crons": [
+    { "path": "/api/cron/db-keepalive", "schedule": "0 * * * *" }
+  ],
   "rewrites": [
     { "source": "/api/blob", "destination": "/api/index" },
     { "source": "/api/trpc/(.*)", "destination": "/api/index" },
